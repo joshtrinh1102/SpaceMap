@@ -2,19 +2,17 @@ name: Build & deploy map
 
 on:
   schedule:
-    - cron: '0 16 * * *'   # ~12:00 noon US Eastern (during EDT)
-    - cron: '0 21 * * *'   # ~5:00 PM  US Eastern (during EDT)
-  workflow_dispatch:        # adds a "Run workflow" button so you can trigger it by hand
+    - cron: '0 16 * * *'   # ~12:00 noon US Eastern
+    - cron: '0 21 * * *'   # ~5:00 PM  US Eastern
+  workflow_dispatch:        # Allows manual triggering via the "Actions" tab
   push:
-    branches: [ main ]      # also rebuild whenever you change the code
+    branches: [ main ]      # Rebuilds instantly whenever you push code
 
-# permissions the deploy step needs
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# don't let two runs deploy at the same time
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -33,6 +31,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas plotly dash
 
       - name: Build the map (with live news)
         run: python3 space_materials_map.py --live --no-open -o index.html
