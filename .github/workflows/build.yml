@@ -1,0 +1,55 @@
+name: Build & deploy map
+
+on:
+  schedule:
+    - cron: '0 16 * * *'   # ~12:00 noon US Eastern (during EDT)
+    - cron: '0 21 * * *'   # ~5:00 PM  US Eastern (during EDT)
+  workflow_dispatch:        # adds a "Run workflow" button so you can trigger it by hand
+  push:
+    branches: [ main ]      # also rebuild whenever you change the code
+
+# permissions the deploy step needs
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# don't let two runs deploy at the same time
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build the map (with live news)
+        run: python3 space_materials_map.py --live --no-open -o index.html
+
+      - name: Put the page in a site folder
+        run: |
+          mkdir -p _site
+          mv index.html _site/index.html
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
